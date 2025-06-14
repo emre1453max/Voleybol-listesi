@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Voleybol Katılım Listesi</title>
+  <style>
+    body { font-family: sans-serif; padding: 20px; background: #f0f4f8; text-align: center; }
+    h1, h2, h3 { margin-top: 20px; }
+    ul { padding-left: 0; list-style-position: inside; }
+    button { margin-top: 10px; padding: 8px 12px; cursor: pointer; }
+    #admin-panel button { margin: 5px; }
+    .list-container { border: 2px solid #ccc; border-radius: 12px; padding: 15px; background-color: #fff; max-width: 600px; margin: 10px auto; }
+    .admin-users { position: fixed; top: 0; right: 0; background: #e8f0fe; border-left: 2px solid #ccc; border-bottom: 2px solid #ccc; padding: 10px; max-height: 100vh; overflow-y: auto; min-width: 180px; }
+    .admin-users h3 { margin-top: 0; }
+    .admin-users button { display: block; margin: 4px 0; width: 100%; }
+    @media screen and (max-width: 600px) {
+      body { padding: 10px; font-size: 0.95rem; }
+      button { padding: 6px 10px; font-size: 0.9rem; }
+      .admin-users { position: static; max-width: 100%; border: none; }
+    }
+  </style>
+  <script>
+    let currentUser = null;
+    let isAdmin = false;
+
+    let registeredUsers = {
+      "emre": "1453"
+    };
+
+    let blockedUsers = JSON.parse(localStorage.getItem("blockedUsers") || "[]");
+
+    function saveBlockedUsers() {
+      localStorage.setItem("blockedUsers", JSON.stringify(blockedUsers));
+    }
+
+    function login() {
+      const usernameInput = prompt("Kullanıcı adınızı girin:");
+      const passwordInput = prompt("Şifrenizi girin:");
+
+      const username = usernameInput.trim();
+      const password = passwordInput.trim();
+
+      if (blockedUsers.includes(username)) {
+        alert("Bu kullanıcı engellenmiş.");
+        return;
+      }
+
+      if (registeredUsers[username] && registeredUsers[username] === password) {
+        currentUser = username;
+        isAdmin = (username === "emre");
+        document.getElementById("login-btn").style.display = "none";
+        document.getElementById("logout-btn").style.display = "inline-block";
+        document.getElementById("add-btn").style.display = "inline-block";
+        document.getElementById("user-greeting").innerText = `👋 Hoş geldin, ${username}`;
+        if (isAdmin) {
+          document.getElementById("admin-panel").style.display = "block";
+          document.getElementById("admin-users").style.display = "block";
+          renderAdminUsers();
+        }
+      } else {
+        alert("Geçersiz kullanıcı adı veya şifre.");
+      }
+    }
+
+    function logout() {
+      currentUser = null;
+      isAdmin = false;
+      document.getElementById("login-btn").style.display = "inline-block";
+      document.getElementById("logout-btn").style.display = "none";
+      document.getElementById("add-btn").style.display = "none";
+      document.getElementById("admin-panel").style.display = "none";
+      document.getElementById("admin-users").style.display = "none";
+      document.getElementById("user-greeting").innerText = "";
+    }
+
+    function renderAdminUsers() {
+      if (!isAdmin) return;
+      const userList = Object.keys(registeredUsers).map(k => {
+        return `<li>${k} <button onclick="blockUserByName('${k}')">🚫</button> <button onclick="unblockUserByName('${k}')">✅</button></li>`;
+      }).join('');
+      document.getElementById("admin-users").innerHTML = `
+        <h3>👥 Üyeler</h3>
+        <ul>${userList}</ul>
+      `;
+    }
+
+    function blockUserByName(username) {
+      if (!blockedUsers.includes(username)) {
+        blockedUsers.push(username);
+        saveBlockedUsers();
+        alert(`${username} engellendi.`);
+        renderAdminUsers();
+      }
+    }
+
+    function unblockUserByName(username) {
+      blockedUsers = blockedUsers.filter(u => u !== username);
+      saveBlockedUsers();
+      alert(`${username} engeli kaldırıldı.`);
+      renderAdminUsers();
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      const today = new Date().toLocaleDateString("tr-TR");
+      document.getElementById("tarih").innerText = today;
+    });
+  </script>
+</head>
+<body>
+  <h1>📅 <span id="tarih"></span> Voleybol Katılım Listesi</h1>
+  <p id="user-greeting"></p>
+  <p id="sira-bilgi"></p>
+  <button id="login-btn" onclick="login()">Giriş Yap</button>
+  <button id="logout-btn" onclick="logout()" style="display:none">Çıkış Yap</button>
+  <button id="add-btn" onclick="addName()" style="display:none">İsmini Listeye Ekle</button>
+
+  <div id="admin-panel" style="display:none; margin-top:20px;">
+    <h3>🔧 Admin Paneli</h3>
+    <button onclick="resetList()">Listeyi Sıfırla</button>
+    <button onclick="exportCSV()">Listeyi CSV Olarak İndir</button>
+    <button onclick="registerUser()">Yeni Kullanıcı Ekle</button>
+    <button onclick="blockUser()">Kullanıcı Engelle</button>
+    <button onclick="unblockUser()">Engeli Kaldır</button>
+  </div>
+
+  <div class="list-container">
+    <h2>🟢 Ana Takım</h2>
+    <ul id="ana-takim"></ul>
+  </div>
+
+  <div class="list-container">
+    <h2>🟡 Yedekler</h2>
+    <ul id="yedek-takim"></ul>
+  </div>
+
+  <div class="list-container" id="ucuncu-takim"></div>
+
+  <div id="admin-users" class="admin-users" style="display: none;"></div>
+</body>
+</html>
